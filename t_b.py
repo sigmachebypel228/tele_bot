@@ -5,9 +5,6 @@ API_TOKEN = '7987816501:AAEBMc6wJtismo4bETfoHjG6SpmOshQ9PHk'
 
 
 
-# Ваш токен от @BotFather
-
-
 # Создаем объект бота
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -34,7 +31,7 @@ questions = {
 
 
 # Функция обработки команды /start или /restart
-@bot.message_handler(commands=['start', 'restart'])
+@bot.message_handler(commands=['start', 'restart'], content_types=['text'])
 def start(message):
     # Приветственное сообщение
     bot.send_message(message.chat.id, f'Привет! Давай начнем викторину по географии.')
@@ -54,7 +51,7 @@ def start(message):
 
 
 # Обработка ответа на выбор уровня сложности
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(content_types=['text'])
 def handle_level_choice(message):
     if message.text in [LEVEL_EASY, LEVEL_MEDIUM, LEVEL_HARD]:
         level = message.text
@@ -75,7 +72,7 @@ def run_quiz(selected_level, chat_id):
             bot.send_message(chat_id, question['question'])
 
             # Ожидание ответа пользователя
-            @bot.message_handler()
+            @bot.message_handler(content_types=['text'])
             def wait_for_answer(msg):
                 nonlocal user_answer
                 user_answer = msg.text.strip().lower()
