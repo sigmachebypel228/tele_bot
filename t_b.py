@@ -4,89 +4,90 @@ from telebot import types
 API_TOKEN = '7320624649:AAEK3qDvTc4UzgeJi3uw9xGZA2fnt7FYuWI'
 
 
-# Ваш токен от BotFather
+
+# Ваш токен от @BotFather
 
 
-# Уровень сложности
-LEVEL = None
+# Создаем объект бота
+bot = telebot.TeleBot(API_TOKEN)
+
+# Уровень сложности викторины
+LEVEL_EASY = 'Легкий'
+LEVEL_MEDIUM = 'Средний'
+LEVEL_HARD = 'Сложный'
 
 # Вопросы и ответы для разных уровней сложности
-EASY_QUESTIONS = [
-    {'question': 'Какой океан является самым большим?', 'answer': 'Тихий океан'},
-    {'question': 'Какая страна является самой большой по площади?', 'answer': 'Россия'}
-]
-
-MEDIUM_QUESTIONS = [
-    {'question': 'В каком городе находится Эйфелева башня?', 'answer': 'Париж'},
-    {'question': 'Столицей какой страны является Канберра?', 'answer': 'Австралия'}
-]
-
-HARD_QUESTIONS = [
-    {'question': 'Самая высокая гора в мире?', 'answer': 'Эверест'},
-    {'question': 'Самый длинный пролив в мире?', 'answer': 'Мозамбикский пролив'}
-]
-
-# Инициализация бота
-bot = telebot.TeleBot(TOKEN)
+questions = {
+    LEVEL_EASY: [
+        {'question': 'Какой город является столицей Франции?', 'answer': 'Париж'},
+        {'question': 'Какое самое большое озеро в мире?', 'answer': 'Каспийское море'}
+    ],
+    LEVEL_MEDIUM: [
+        {'question': 'В каком городе находится Эйфелева башня?', 'answer': 'Париже'},
+        {'question': 'Где находится гора Эверест?', 'answer': 'Непал'}
+    ],
+    LEVEL_HARD: [
+        {'question': 'Столица какого государства — Сан-Марино?', 'answer': 'Сан-Марино'},
+        {'question': 'Какие два моря соединяет Суэцкий канал?', 'answer': 'Красное и Средиземное'}
+    ]
+}
 
 
-@bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
+# Функция обработки команды /start или /restart
+@bot.message_handler(commands=['start', 'restart'])
+def start(message):
+    # Приветственное сообщение
+    bot.send_message(message.chat.id, f'Привет! Давай начнем викторину по географии.')
+
+    # Клавиатура с выбором уровня сложности
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
-    itembtn1 = types.KeyboardButton('/easy')
-    itembtn2 = types.KeyboardButton('/medium')
-    itembtn3 = types.KeyboardButton('/hard')
+    itembtn1 = types.KeyboardButton(LEVEL_EASY)
+    itembtn2 = types.KeyboardButton(LEVEL_MEDIUM)
+    itembtn3 = types.KeyboardButton(LEVEL_HARD)
     markup.add(itembtn1, itembtn2, itembtn3)
-    bot.send_message(message.chat.id, "Привет! Выберите уровень сложности:", reply_markup=markup)
 
-
-@bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    global LEVEL
-    if message.text == '/easy':
-        LEVEL = EASY_QUESTIONS
-        ask_question(message)
-    elif message.text == '/medium':
-        LEVEL = MEDIUM_QUESTIONS
-        ask_question(message)
-    elif message.text == '/hard':
-        LEVEL = HARD_QUESTIONS
-        ask_question(message)
-
-
-def ask_question(message):
-    current_question = LEVEL.pop(0)
-    markup = types.ForceReply(selective=False)
     bot.send_message(
         message.chat.id,
-        f'Вопрос: {current_question["question"]}',
+        'Выбери уровень сложности:',
         reply_markup=markup
     )
-    bot.register_next_step_handler(message, check_answer, current_question)
 
 
-def check_answer(message, current_question):
-    if message.text.lower() == current_question['answer'].lower():
-        bot.send_message(
-            message.chat.id,
-            "Правильно!"
-        )
+# Обработка ответа на выбор уровня сложности
+@bot.message_handler(func=lambda message: True)
+def handle_level_choice(message):
+    if message.text in [LEVEL_EASY, LEVEL_MEDIUM, LEVEL_HARD]:
+        level = message.text
+
+        # Запускаем викторину
+        run_quiz(level, message.chat.id)
     else:
-        bot.send_message(
-            message.chat.id,
-            f"Неверно. Правильный ответ: {current_question['answer']}"
-        )
+        bot.reply_to(message, 'Пожалуйста, выберите уровень сложности из предложенных вариантов.')
 
-    if len(LEVEL) > 0:
-        ask_question(message)
-    else:
-        bot.send_message(
-            message.chat.id,
-            'Викторина завершена!'
-        )
+
+# Основная функция викторины
+def run_quiz(selected_level, chat_id):
+    questions_for_level = questions.get(selected_level)
+
+    for question in questions_for_level:
+        user_answer = None
+        while not user_answer:
+            bot.send_message(chat_id, question['question'])
+
+            # Ожидание ответа пользователя
+            @bot.message_handler()
+            def wait_for_answer(msg):
+                nonlocal user_answer
+                user_answer = msg.text.strip().lower()
+
+                if user_answer == question['answer'].lower():
+                    bot.send_message(msg.chat.id, 'Правильно!')
+                else:
+                    bot.send_message(msg.chat.id, 'Неверно. Правильный ответ: {}'.format(question['answer']))
+
+                bot.register_next_step_handler(msg, wait_for_answer)
 
 
 # Запуск бота
-if __name__ == "__main__":
+if __name__ == '__main__':
     bot.polling(none_stop=True)
-
