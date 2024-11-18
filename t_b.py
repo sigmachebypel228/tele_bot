@@ -45,8 +45,8 @@ def start(message):
 
     bot.send_message(
         message.chat.id,
-        'Выбери уровень сложности:',
-        reply_markup=markup
+        'Выбери уровень сложности: Легкий, Средний, Сложный',
+            reply_markup=markup
     )
 
 
@@ -66,24 +66,29 @@ def handle_level_choice(message):
 def run_quiz(selected_level, chat_id):
     questions_for_level = questions.get(selected_level)
 
-    for question in questions_for_level:
-        user_answer = None
-        while not user_answer:
-            bot.send_message(chat_id, question['question'])
+    def send_question(index):
+        if index >= len(questions_for_level):
+            bot.send_message(chat_id, 'Викторина завершена! Чтобы пройти ещё раз, напишите /restart')
+            return
 
-            # Ожидание ответа пользователя
-            @bot.message_handler(content_types=['text'])
-            def wait_for_answer(msg):
-                nonlocal user_answer
-                user_answer = msg.text.strip().lower()
+        current_question = questions_for_level[index]
+        bot.send_message(chat_id, current_question['question'])
 
-                if user_answer == question['answer'].lower():
-                    bot.send_message(msg.chat.id, 'Правильно!')
-                else:
-                    bot.send_message(msg.chat.id, 'Неверно. Правильный ответ: {}'.format(question['answer']))
+        @bot.message_handler(content_types=['text'])
+        def wait_for_answer(msg):
+            answer = msg.text.strip().lower()
+            if answer == current_question['answer'].lower():
+                bot.send_message(msg.chat.id, 'Правильно!')
+            else:
+                bot.send_message(msg.chat.id, 'Неверно. Правильный ответ: {}'.format(current_question['answer']))
 
-                bot.register_next_step_handler(msg, wait_for_answer)
+            # Переходим к следующему вопросу
+            send_question(index + 1)
 
+        bot.register_next_step_handler_by_chat_id(chat_id, wait_for_answer)
+
+    # Начинаем с первого вопроса
+    send_question(0)
 
 # Запуск бота
 if __name__ == '__main__':
