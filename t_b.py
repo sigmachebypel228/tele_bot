@@ -1,7 +1,7 @@
 import telebot
 from telebot import types
 # Вставьте сюда ваш токен от бота
-API_TOKEN = '7320624649:AAEK3qDvTc4UzgeJi3uw9xGZA2fnt7FYuWI'
+API_TOKEN = '7320624649:AAFsBtUMbaCknsQes7mGqsV0wmgwQpQ7Jdg'
 
 
 
